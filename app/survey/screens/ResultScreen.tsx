@@ -98,7 +98,7 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
       name: data.name,
       email: answers.email || "",
     });
-    router.push("/routine");
+    router.push("/routine/intro");
   }, [data, answers.email, router]);
 
   const faceImage =

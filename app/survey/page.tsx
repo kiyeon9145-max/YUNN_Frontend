@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { setAnalyticsContext } from "../lib/analytics";
+import { getSurveyProgress, saveSurveyProgress } from "./survey-progress";
 import IntroScreen from "./screens/IntroScreen";
 import SurveyShell from "./screens/SurveyShell";
 import AnalysisScreen from "./screens/AnalysisScreen";
@@ -112,17 +113,40 @@ function inferSkinTypeFromHelper(answers: SurveyAnswers): string {
 
 // ── 페이지 ─────────────────────────────────────────────────────────────────
 export default function SurveyPage() {
-  const [step, setStep] = useState<SurveyStep>("intro");
+  const [step, setStep] = useState<SurveyStep | "loading">("loading");
   const [answers, setAnswers] = useState<SurveyAnswers>({});
+  const [hydrated, setHydrated] = useState(false);
 
   const merge = (partial: Partial<SurveyAnswers>) =>
     setAnswers((prev) => ({ ...prev, ...partial }));
 
+  // 첫 렌더에 저장된 진행 상태(step + answers)를 복원한다 — 없으면 intro부터 시작.
+  useEffect(() => {
+    const saved = getSurveyProgress();
+    if (saved) {
+      setAnswers(saved.answers);
+      setStep(saved.step);
+    } else {
+      setStep("intro");
+    }
+    setHydrated(true);
+  }, []);
+
+  // 복원이 끝난 뒤부터는 step/answers가 바뀔 때마다 그대로 저장해
+  // 새로고침·뒤로가기 후에도 같은 화면(결과 화면 포함)으로 돌아올 수 있게 한다.
+  useEffect(() => {
+    if (!hydrated || step === "loading") return;
+    saveSurveyProgress({ step, answers });
+  }, [hydrated, step, answers]);
+
   // 스텝 전환 시 이전 화면에서 스크롤한 위치가 남아있지 않도록 맨 위로 리셋한다
   useEffect(() => {
+    if (step === "loading") return;
     window.scrollTo(0, 0);
     trackSurveyStepView(step);
   }, [step]);
+
+  if (step === "loading") return null;
 
   return (
     <>

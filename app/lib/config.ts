@@ -6,6 +6,7 @@
 
 export const STORAGE_KEYS = {
   PENDING_RESULT: "yunn_pending_result_data", // 설문 결과 { skinType, concernType, gender, name, email }
+  SURVEY_PROGRESS: "yunn_survey_progress", // 설문 진행 상태 { step, answers } — 새로고침/뒤로가기 복원용
   ROUTINE_START: "yunn_routine_start", // 루틴 시작일 "YYYY-MM-DD"
   ROUTINE_CHECKS: "yunn_routine_checks", // 일자별 스텝 완료 상태
   PHOTO_BEFORE: "yunn_photo_before", // Before 사진 { dataUrl, date }

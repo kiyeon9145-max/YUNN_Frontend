@@ -15,7 +15,7 @@ export default function BenefitCard({ icon, title, description }: BenefitCardPro
   return (
     <div className="flex items-center gap-4 rounded-card bg-white px-4 py-4 shadow-[0_4px_14px_rgba(0,0,0,0.06)]">
       <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-primary-light">
-        <Image src={icon} alt="" width={40} height={40} className="object-contain" />
+        <Image src={icon} alt="" width={128} height={128} className="object-contain" />
       </div>
       <div>
         <div className="text-[15px] font-bold text-ink">{title}</div>

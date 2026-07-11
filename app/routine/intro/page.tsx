@@ -1,9 +1,8 @@
 "use client";
 
 // page.tsx — /routine/intro: ResultScreen의 "Get My 14-Day Plan" CTA와
-// 실제 루틴 시작(Before 사진, /routine)을 잇는 베타 안내 화면.
-// 여기서 설문/사진 촬영이 시작되진 않는다 — 베타 서비스임을 알리고
-// 루틴 트래킹이 주는 혜택을 보여준 뒤 /routine으로 넘긴다.
+// 실제 루틴 시작(Before 사진, /routine)을 잇는 루틴 소개 화면.
+// 여기서 설문/사진 촬영이 시작되진 않는다 — 루틴 트래킹이 주는 혜택을 보여준 뒤 /routine으로 넘긴다.
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -64,17 +63,13 @@ export default function RoutineIntroPage() {
         </button>
 
         <div className="mt-4 text-center">
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold tracking-[0.4px] text-primary">
-            BETA
-          </span>
           <h1 className="mt-4 text-[26px] font-bold leading-[1.25] text-ink">
             Unlock Your Personalized
             <br />
             <span className="text-primary">14-Day Skin Plan</span>
           </h1>
           <p className="mx-auto mt-3 max-w-[280px] text-[14px] leading-[1.5] text-ink-faint">
-            YUNN&apos;s 14-day routine tracking is in beta. You&apos;re one
-            step away from your personalized skincare plan.
+            You&apos;re one step away from your personalized skincare plan.
           </p>
         </div>
 

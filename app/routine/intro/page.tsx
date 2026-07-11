@@ -37,7 +37,7 @@ export default function RoutineIntroPage() {
 
   const handleStart = () => {
     trackEvent("routine_intro_cta_click");
-    router.push("/routine");
+    window.location.href = "https://docs.google.com/forms/d/e/1FAIpQLSeaZgxM0-jGhdBJzJARLwAHCnyyvQaYfFw3QsP4iYq_5M5C3Q/viewform?usp=header";
   };
 
   return (

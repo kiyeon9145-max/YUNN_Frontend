@@ -15,7 +15,7 @@
 // 잠금(피드백 게이트) 메커니즘은 MVP 이후 구현 예정 — 현재 모두 잠금 해제 상태로 표시.
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SurveyAnswers } from "../page";
 import {
@@ -58,9 +58,20 @@ function toResultData(answers: SurveyAnswers): ResultData {
 
 export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activePeriod, setActivePeriod] = useState<"morning" | "evening">(
     "morning",
   );
+
+  // type 쿼리 파라미터 없으면 50:50으로 a/b 할당
+  useEffect(() => {
+    if (!searchParams.has("type")) {
+      const randomType = Math.random() < 0.5 ? "a" : "b";
+      router.push(`?type=${randomType}`, { scroll: false });
+    }
+  }, [searchParams, router]);
+
+  const abTestType = (searchParams.get("type") || "a") as "a" | "b";
 
   const data = useMemo(() => toResultData(answers), [answers]);
   const config = useMemo(() => getResultConfig(data), [data]);
@@ -90,6 +101,7 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
       source: "result_screen",
       skin_type: data.skinType,
       concern_type: data.concernType,
+      ab_test_type: abTestType,
     });
     savePendingResult({
       skinType: data.skinType,
@@ -99,7 +111,7 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
       email: answers.email || "",
     });
     router.push("/routine/intro");
-  }, [data, answers.email, router]);
+  }, [data, answers.email, router, abTestType]);
 
   const faceImage =
     answers.photoDataUrl ||
@@ -150,7 +162,7 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
             activePeriod={activePeriod}
             onTabChange={setActivePeriod}
           />
-          <ProductsSection onRetake={onRetake} onUnlockRoutine={handleUnlockRoutine} />
+          <ProductsSection onRetake={onRetake} onUnlockRoutine={handleUnlockRoutine} testType={abTestType} />
         </div>
 
         <BottomNav onRetake={onRetake} />
@@ -540,9 +552,11 @@ function RoutineDetail({
 function ProductsSection({
   onRetake,
   onUnlockRoutine,
+  testType,
 }: {
   onRetake: () => void;
   onUnlockRoutine: () => void;
+  testType: "a" | "b";
 }) {
   return (
     <section className="mt-[27px]">
@@ -578,20 +592,86 @@ function ProductsSection({
         Retake Quiz
       </button>
 
-      {/* Unlock CTA — 피드백 게이트 MVP 이후 구현 */}
-      <section className="mt-[28px] mb-6 rounded-[5px] border border-[#EAEAEA] bg-[#FAFAFA] px-4 py-5 text-center">
-        <div className="text-[24px] font-bold text-black mb-2">
-          Your Personalized 14-Day Skin Plan
-        </div>
-        <p className="text-[16px] text-[#666] leading-[1.5] mb-4">
-          Build healthier skin with a personalized 14-day skincare routine,
-          daily guidance, and expert tips based on your results.
-        </p>
-        <ResultCtaButton onClick={onUnlockRoutine}>
-          <span>Get My 14-Day Plan</span>
-          <i className="ph ph-arrow-right"></i>
-        </ResultCtaButton>
-      </section>
+      {/* A/B 테스트: A버전은 기존 안내만, B버전은 커피쿠폰 추가 */}
+      {testType === "a" ? (
+        // A 버전: 기본 안내
+        <section className="mt-[28px] mb-6 rounded-[5px] border border-[#EAEAEA] bg-[#FAFAFA] px-4 py-5 text-center">
+          <div className="text-[24px] font-bold text-black mb-2">
+            Your Personalized 14-Day Skin Plan
+          </div>
+          <p className="text-[16px] text-[#666] leading-[1.5] mb-4">
+            Build healthier skin with a personalized 14-day skincare routine,
+            daily guidance, and expert tips based on your results.
+          </p>
+          <ResultCtaButton onClick={onUnlockRoutine}>
+            <span>Get My 14-Day Plan</span>
+            <i className="ph ph-arrow-right"></i>
+          </ResultCtaButton>
+        </section>
+      ) : (
+        // B 버전: 안내 + 커피쿠폰 + CTA를 하나의 박스로 통합
+        <section className="mt-[28px] mb-6 rounded-[5px] border border-[#EAEAEA] bg-[#FAFAFA] px-4 py-6">
+          {/* 상단: 안내 텍스트 */}
+          <div className="text-center mb-4">
+            <div className="text-[24px] font-bold text-black mb-2">
+              Your Personalized 14-Day Skin Plan
+            </div>
+            <p className="text-[16px] text-[#666] leading-[1.5]">
+              Build healthier skin with a personalized 14-day skincare routine,
+              daily guidance, and expert tips based on your results.
+            </p>
+          </div>
+
+          {/* 구분선 */}
+          <div className="border-t border-dashed border-[#E5E7EB] my-4" />
+
+          {/* 중간: 커피쿠폰 reward */}
+          <div className="flex items-center gap-4 mb-4">
+            {/* 왼쪽: 커피컵 일러스트 */}
+            <div className="flex-shrink-0 w-[120px] h-[120px]">
+              <Image
+                src="/images/Coffee.webp"
+                alt="Starbucks Coffee Reward"
+                width={120}
+                height={120}
+                className="w-full h-full object-contain transform -rotate-12"
+              />
+            </div>
+
+            {/* 오른쪽: 텍스트 */}
+            <div className="flex-1 flex flex-col justify-center gap-2">
+              {/* Beta Reward 태그 */}
+              <div className="flex items-center gap-2">
+                <span className="text-[18px]">🎁</span>
+                <span className="text-[13px] font-semibold text-[#D89A00]">
+                  Beta Reward
+                </span>
+              </div>
+
+              {/* 메인 텍스트 */}
+              <div className="leading-[1.2]">
+                <div className="text-[28px] font-bold text-black">Receive a</div>
+                <div className="text-[28px] font-bold text-[#1FA67A]">Starbucks</div>
+                <div className="text-[26px] font-bold text-[#1FA67A]">Coffee Coupon</div>
+              </div>
+
+              {/* 서브텍스트 */}
+              <p className="text-[13px] text-[#6B7280] leading-[1.4]">
+                after completing the survey.
+              </p>
+            </div>
+          </div>
+
+          {/* 구분선 */}
+          <div className="border-t border-dashed border-[#E5E7EB] my-4" />
+
+          {/* 하단: CTA 버튼 */}
+          <ResultCtaButton onClick={onUnlockRoutine}>
+            <span>Get My 14-Day Plan</span>
+            <i className="ph ph-arrow-right"></i>
+          </ResultCtaButton>
+        </section>
+      )}
     </section>
   );
 }

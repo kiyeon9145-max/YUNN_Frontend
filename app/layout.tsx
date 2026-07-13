@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "YUNN | Skin Analysis",
   description: "Personalized K-Beauty skin routine in 3 minutes",
+  icons: {
+    icon: "/images/yunn_logo.png",
+  },
 };
 
 // GTM 컨테이너 ID는 Vercel env에서 주입해 배포 환경별로 바꿀 수 있게 한다.

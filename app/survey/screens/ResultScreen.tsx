@@ -15,7 +15,7 @@
 // 잠금(피드백 게이트) 메커니즘은 MVP 이후 구현 예정 — 현재 모두 잠금 해제 상태로 표시.
 
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SurveyAnswers } from "../page";
 import {
@@ -58,20 +58,22 @@ function toResultData(answers: SurveyAnswers): ResultData {
 
 export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [activePeriod, setActivePeriod] = useState<"morning" | "evening">(
     "morning",
   );
+  const [variant, setVariant] = useState<"A" | "B">("A");
 
-  // type 쿼리 파라미터 없으면 50:50으로 a/b 할당
+  // 쿠키에서 A/B variant 읽기 (middleware에서 이미 설정됨)
   useEffect(() => {
-    if (!searchParams.has("type")) {
-      const randomType = Math.random() < 0.5 ? "a" : "b";
-      router.push(`?type=${randomType}`, { scroll: false });
-    }
-  }, [searchParams, router]);
+    // document.cookie에서 ab_variant 값 파싱
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("ab_variant="))
+      ?.split("=")[1];
 
-  const abTestType = (searchParams.get("type") || "a") as "a" | "b";
+    const abVariant = (cookieValue as "A" | "B" | undefined) || "A";
+    setVariant(abVariant);
+  }, []);
 
   const data = useMemo(() => toResultData(answers), [answers]);
   const config = useMemo(() => getResultConfig(data), [data]);
@@ -91,8 +93,9 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
       concern_type: data.concernType,
       gender: data.gender,
       age: data.age,
+      variant: variant,
     });
-  }, [answers.city, data]);
+  }, [answers.city, data, variant]);
 
   // 설문 결과를 localStorage에 저장해 /routine이 읽을 수 있게 한 뒤 이동
   const handleUnlockRoutine = useCallback(() => {
@@ -101,7 +104,7 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
       source: "result_screen",
       skin_type: data.skinType,
       concern_type: data.concernType,
-      ab_test_type: abTestType,
+      variant: variant,
     });
     savePendingResult({
       skinType: data.skinType,
@@ -111,7 +114,7 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
       email: answers.email || "",
     });
     router.push("/routine/intro");
-  }, [data, answers.email, router, abTestType]);
+  }, [data, answers.email, router, variant]);
 
   const faceImage =
     answers.photoDataUrl ||
@@ -162,7 +165,7 @@ export default function ResultScreen({ answers, onRetake }: ResultScreenProps) {
             activePeriod={activePeriod}
             onTabChange={setActivePeriod}
           />
-          <ProductsSection onRetake={onRetake} onUnlockRoutine={handleUnlockRoutine} testType={abTestType} />
+          <ProductsSection onRetake={onRetake} onUnlockRoutine={handleUnlockRoutine} variant={variant} />
         </div>
 
         <BottomNav onRetake={onRetake} />
@@ -552,11 +555,11 @@ function RoutineDetail({
 function ProductsSection({
   onRetake,
   onUnlockRoutine,
-  testType,
+  variant,
 }: {
   onRetake: () => void;
   onUnlockRoutine: () => void;
-  testType: "a" | "b";
+  variant: "A" | "B";
 }) {
   return (
     <section className="mt-[27px]">
@@ -593,7 +596,7 @@ function ProductsSection({
       </button>
 
       {/* A/B 테스트: A버전은 기존 안내만, B버전은 커피쿠폰 추가 */}
-      {testType === "a" ? (
+      {variant === "A" ? (
         // A 버전: 기본 안내
         <section className="mt-[28px] mb-6 rounded-[5px] border border-[#EAEAEA] bg-[#FAFAFA] px-4 py-5 text-center">
           <div className="text-[24px] font-bold text-black mb-2">

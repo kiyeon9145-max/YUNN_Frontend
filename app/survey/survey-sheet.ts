@@ -12,17 +12,12 @@ interface SendSurveySheetOptions {
   photoUploaded: boolean;
 }
 
-// 설문 답변이 유효한 형식인지 검증한다.
-function validateSurveyAnswers(answers: SurveyAnswers): boolean {
-  try {
-    SurveyAnswersSchema.parse(answers);
-    return true;
-  } catch (error) {
-    // 검증 실패 로깅
-    if (typeof console !== "undefined") {
-      console.warn("[validateSurveyAnswers] Validation failed:", error);
-    }
-    return false;
+// 설문 답변이 유효한 형식인지 검증하고 로깅한다. (모니터링 용도)
+function validateSurveyAnswers(answers: SurveyAnswers): void {
+  const result = SurveyAnswersSchema.safeParse(answers);
+
+  if (!result.success) {
+    console.warn("[validateSurveyAnswers] Validation failed:", result.error.flatten());
   }
 }
 
@@ -82,15 +77,13 @@ export function buildSurveySheetPayload(
 }
 
 // 설문 완료 row를 Google Sheets로 전송한다.
-// 1. 검증 (유효한 형식인가?)
+// 1. 검증 (유효한 형식인가? - 로깅만)
 // 2. 변환 (Sheets 형식으로)
 // 3. 전송 (실패해도 화면 전환은 계속됨)
 export function sendSurveyCompletionToSheet(
   answers: SurveyAnswers,
   options: SendSurveySheetOptions,
 ) {
-  if (!validateSurveyAnswers(answers)) {
-    return null;
-  }
+  validateSurveyAnswers(answers);
   return sendToSheet(buildSurveySheetPayload(answers, options));
 }

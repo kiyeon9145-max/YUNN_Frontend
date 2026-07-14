@@ -4,11 +4,26 @@
 
 import { getSessionId } from "../lib/analytics";
 import { sendToSheet, type SheetPayload } from "../lib/sheet-repository";
+import { SurveyAnswersSchema } from "../lib/schemas/survey";
 import { toConcernKey } from "./result-data";
 import type { SurveyAnswers } from "./page";
 
 interface SendSurveySheetOptions {
   photoUploaded: boolean;
+}
+
+// 설문 답변이 유효한 형식인지 검증한다.
+function validateSurveyAnswers(answers: SurveyAnswers): boolean {
+  try {
+    SurveyAnswersSchema.parse(answers);
+    return true;
+  } catch (error) {
+    // 검증 실패 로깅
+    if (typeof console !== "undefined") {
+      console.warn("[validateSurveyAnswers] Validation failed:", error);
+    }
+    return false;
+  }
 }
 
 // Sheets 컬럼 순서를 문서처럼 읽을 수 있게 명시한 비식별 설문 완료 schema다.
@@ -35,7 +50,7 @@ export const SURVEY_SHEET_COLUMNS = [
   "result_concern_type",
 ] as const;
 
-// 개인정보 없이 설문 완료 시점의 운영/리서치 필드만 Sheets row로 만든다.
+// 검증된 설문 답변을 Sheets 형식으로 변환한다. (데이터 형식화만 담당)
 export function buildSurveySheetPayload(
   answers: SurveyAnswers,
   { photoUploaded }: SendSurveySheetOptions,
@@ -66,10 +81,16 @@ export function buildSurveySheetPayload(
   };
 }
 
-// 설문 완료 row를 Google Sheets로 전송하고, 실패해도 화면 전환은 계속되게 한다.
+// 설문 완료 row를 Google Sheets로 전송한다.
+// 1. 검증 (유효한 형식인가?)
+// 2. 변환 (Sheets 형식으로)
+// 3. 전송 (실패해도 화면 전환은 계속됨)
 export function sendSurveyCompletionToSheet(
   answers: SurveyAnswers,
   options: SendSurveySheetOptions,
 ) {
+  if (!validateSurveyAnswers(answers)) {
+    return null;
+  }
   return sendToSheet(buildSurveySheetPayload(answers, options));
 }

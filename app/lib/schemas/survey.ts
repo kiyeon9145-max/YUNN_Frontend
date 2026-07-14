@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // 허용된 이메일 도메인 (SurveyAnswer.js ALLOWED_INDIAN_EMAIL_DOMAINS)
-const ALLOWED_EMAIL_DOMAINS = [
+const ALLOWED_EMAIL_DOMAINS = new Set([
   "gmail.com",
   "outlook.com",
   "yahoo.com",
@@ -9,44 +9,34 @@ const ALLOWED_EMAIL_DOMAINS = [
   "hotmail.com",
   "rediffmail.com",
   "icloud.com",
-] as const;
+]);
 
-// 이메일 검증 로직 (input-component.tsx에서 추출)
-function validateEmail(email: string): boolean {
-  const normalized = email.toLowerCase().trim();
-  if (!normalized) return false;
-  if (/\s/.test(email.trim())) return false;
-  if (/[^\x00-\x7F]/.test(normalized)) return false;
-
-  const parts = normalized.split("@");
-  if (parts.length !== 2) return false;
-
-  const [local, domain] = parts;
-  if (!local || !domain) return false;
-  if (!/^[a-z0-9._%+-]+$/.test(local)) return false;
-  if (!/^[a-z0-9.-]+$/.test(domain)) return false;
-  if (/^[._%+-]|[._%+-]$/.test(local)) return false;
-  if (local.includes("..") || domain.includes("..")) return false;
-  if (!domain.includes(".")) return false;
-
-  const labels = domain.split(".");
-  if (labels.some((l) => !l || l.startsWith("-") || l.endsWith("-")))
-    return false;
-
-  const tld = labels[labels.length - 1];
-  if (!/^[a-z]{2,}$/.test(tld)) return false;
-  return ALLOWED_EMAIL_DOMAINS.includes(domain as any);
+// 도메인만 검증하는 함수 (z.email()으로 기본 형식은 이미 검증됨)
+function isAllowedEmailDomain(email: string): boolean {
+  const domain = email.toLowerCase().split("@")[1];
+  return domain ? ALLOWED_EMAIL_DOMAINS.has(domain) : false;
 }
 
 // 전화번호 검증 (인도 번호: 6-9로 시작, 10자리)
 const PhoneRegex = /^[6-9]\d{9}$/;
+
+// 이름/이메일/전화 입력 스키마
+export const UserInfoSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z
+    .string()
+    .email({ message: "Invalid email format" })
+    .refine(isAllowedEmailDomain, "Email domain not supported"),
+  phone: z.string().regex(PhoneRegex, "Invalid Indian phone number"),
+});
 
 // 설문 답변 스키마
 export const SurveyAnswersSchema = z.object({
   name: z.string().min(2).optional(),
   email: z
     .string()
-    .refine(validateEmail, "Invalid email or unsupported domain")
+    .email({ message: "Invalid email format" })
+    .refine(isAllowedEmailDomain, "Invalid email or unsupported domain")
     .optional(),
   phone: z.string().regex(PhoneRegex, "Invalid Indian phone number").optional(),
   city: z.string().optional(),

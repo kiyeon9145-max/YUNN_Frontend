@@ -26,48 +26,8 @@
 //   • actions:   h 69px, mt 30px, gap 25px, buttons 150×40 radius-[12px] text-base font-semibold tracking-[0.8px]
 
 import { useState } from "react";
+import { UserInfoSchema } from "../../lib/schemas/survey";
 import { SurveyActions } from "../components/button-component";
-
-// SurveyAnswer.js ALLOWED_INDIAN_EMAIL_DOMAINS
-const ALLOWED_DOMAINS = [
-  "gmail.com",
-  "outlook.com",
-  "yahoo.com",
-  "yahoo.in",
-  "hotmail.com",
-  "rediffmail.com",
-  "icloud.com",
-];
-
-function isValidEmail(raw: string): boolean {
-  const email = raw.toLowerCase().trim();
-  if (!email) return false;
-  if (/\s/.test(raw.trim())) return false;
-  if (/[^\x00-\x7F]/.test(email)) return false;
-
-  const parts = email.split("@");
-  if (parts.length !== 2) return false;
-
-  const [local, domain] = parts;
-  if (!local || !domain) return false;
-  if (!/^[a-z0-9._%+-]+$/.test(local)) return false;
-  if (!/^[a-z0-9.-]+$/.test(domain)) return false;
-  if (/^[._%+-]|[._%+-]$/.test(local)) return false;
-  if (local.includes("..") || domain.includes("..")) return false;
-  if (!domain.includes(".")) return false;
-
-  const labels = domain.split(".");
-  if (labels.some((l) => !l || l.startsWith("-") || l.endsWith("-")))
-    return false;
-
-  const tld = labels[labels.length - 1];
-  if (!/^[a-z]{2,}$/.test(tld)) return false;
-  return ALLOWED_DOMAINS.includes(domain);
-}
-
-function isValidPhone(value: string): boolean {
-  return /^[6-9]\d{9}$/.test(value.trim());
-}
 
 interface Step1Props {
   onNext: (answers: { name: string; email: string; phone: string }) => void;
@@ -87,10 +47,14 @@ export default function Step1({ onNext, onBack }: Step1Props) {
   // Next 클릭 시 강제 에러 노출
   const [submitted, setSubmitted] = useState(false);
 
+  // Zod 스키마로 전체 입력값 검증
+  const userInfoResult = UserInfoSchema.safeParse({ name, email, phone });
+  const fieldErrors = !userInfoResult.success ? userInfoResult.error.flatten().fieldErrors : {};
+
   const nameValid = name.trim().length >= 2;
-  const emailValid = isValidEmail(email);
-  const phoneValid = isValidPhone(phone);
-  const isComplete = nameValid && emailValid && phoneValid;
+  const emailValid = !fieldErrors.email;
+  const phoneValid = !fieldErrors.phone;
+  const isComplete = userInfoResult.success;
 
   // 이름은 valid check만 표시 (is-invalid 없음)
   const nameCardState: FieldState = nameValid ? "valid" : "";
